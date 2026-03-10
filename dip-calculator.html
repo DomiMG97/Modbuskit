@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIP Switch Rechner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --border: #dde1e7;
+    --border-strong: #bcc2cb;
+    --accent: #e20015;
+    --text: #1a1c1f;
+    --text-dim: #999;
+    --sidebar: #1e2025;
+    --green: #22c55e;
+    --green-bg: #f0fdf4;
+    --green-border: #86efac;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Roboto Condensed', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--sidebar);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .logo-bosch {
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    letter-spacing: 1px;
+    border-radius: 2px;
+  }
+  .logo-title { color: #666; font-size: 13px; }
+
+  .layout { display: flex; flex: 1; }
+
+  aside {
+    width: 185px;
+    background: var(--sidebar);
+    flex-shrink: 0;
+    padding-top: 12px;
+  }
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #444;
+    padding: 0 14px 6px;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .device-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    transition: background 0.1s;
+  }
+  .device-item:hover { background: #272a30; }
+  .device-item.active { border-left-color: var(--accent); background: #272a30; }
+  .device-item .dev-name { font-size: 13px; font-weight: 700; color: #ccc; }
+  .device-item .dev-info { font-size: 10px; color: #555; font-family: 'Roboto Mono', monospace; margin-top: 2px; }
+
+  main { flex: 1; padding: 20px 24px; max-width: 760px; }
+
+  /* DEVICE HEADER */
+  .device-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent);
+  }
+  .device-header h1 { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .device-header p { font-size: 11px; color: var(--text-dim); font-family: 'Roboto Mono', monospace; }
+
+  /* INPUT SECTION */
+  .input-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .input-group { display: flex; flex-direction: column; gap: 4px; }
+  .input-group label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-family: 'Roboto Mono', monospace;
+  }
+  .addr-input {
+    background: #fafafa;
+    border: 1px solid var(--border-strong);
+    border-bottom: 2px solid #333;
+    color: var(--text);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    width: 105px;
+    padding: 2px 8px 4px;
+    outline: none;
+    border-radius: 0;
+    transition: border-color 0.15s;
+  }
+  .addr-input:focus { border-bottom-color: var(--accent); }
+  .addr-range {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Roboto Mono', monospace;
+    padding-bottom: 6px;
+  }
+  .protocol-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    letter-spacing: 1.5px;
+    border-radius: 2px;
+    align-self: flex-end;
+  }
+
+  /* SELECT */
+  .select-control {
+    background: #fafafa;
+    border: 1px solid var(--border-strong);
+    border-bottom: 2px solid #333;
+    color: var(--text);
+    font-family: 'Roboto Condensed', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 5px 26px 5px 8px;
+    outline: none;
+    border-radius: 0;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .select-control:focus { border-bottom-color: var(--accent); }
+
+  /* DIP SECTION */
+  .dip-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .dip-section-header {
+    background: #f7f8fa;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .dip-section-header h2 {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 400;
+    font-family: 'Roboto Mono', monospace;
+  }
+  .dip-addr-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'Roboto Mono', monospace;
+  }
+  .dip-section-body { padding: 18px 16px 16px; }
+
+  /* GROUP LABELS ABOVE DIP ROW */
+  .dip-row-wrapper { display: flex; flex-direction: column; gap: 0; }
+
+  .dip-group-labels {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+    align-items: flex-end;
+  }
+
+  /* Each label block spans N dip-switches (width matched via flex) */
+  .dip-label-span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .dip-label-span-text {
+    font-size: 9px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    font-family: 'Roboto Mono', monospace;
+    white-space: normal;
+    word-break: break-word;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .dip-label-span-text.green  { color: #16a34a; }
+  .dip-label-span-text.orange { color: #c2410c; }
+  .dip-label-span-bar {
+    height: 2px;
+    width: 100%;
+    border-radius: 1px;
+  }
+  .dip-label-span-bar.green  { background: #22c55e; }
+  .dip-label-span-bar.orange { background: #f97316; }
+
+  /* DIP ROW */
+  .dip-row {
+    display: flex;
+    gap: 5px;
+    align-items: stretch;
+    flex-wrap: nowrap;
+  }
+
+  .dip-switch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+  .dip-num-label {
+    font-size: 10px;
+    font-family: 'Roboto Mono', monospace;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+  .dip-body {
+    width: 100%;
+    max-width: 36px;
+    height: 52px;
+    background: #e8eaed;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .dip-body::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: var(--border-strong);
+    z-index: 1;
+  }
+  .dip-slider {
+    position: absolute;
+    left: 3px; right: 3px;
+    height: calc(50% - 4px);
+    background: #c0c5cc;
+    border-radius: 2px;
+    top: calc(50% + 3px);
+    transition: top 0.13s ease, background 0.13s ease;
+    z-index: 2;
+  }
+
+  /* GREEN – address ON */
+  .dip-switch.on .dip-slider { top: 3px; background: var(--green); }
+  .dip-switch.on .dip-body {
+    border-color: var(--green-border);
+    box-shadow: 0 0 0 2px rgba(34,197,94,0.15);
+    background: var(--green-bg);
+  }
+
+  /* ORANGE – config ON */
+  .dip-switch.config.on .dip-slider { top: 3px; background: #f97316; }
+  .dip-switch.config.on .dip-body {
+    border-color: #fdba74;
+    box-shadow: 0 0 0 2px rgba(249,115,22,0.15);
+    background: #fff7ed;
+  }
+  .dip-switch.config .dip-body { background: #fafafa; border-color: #e5e7eb; }
+
+  /* VIOLET – special */
+  .dip-switch.special .dip-body { background: #eef2ff; border-color: #c7d2fe; }
+  .dip-switch.special.on .dip-slider { background: #6366f1; }
+  .dip-switch.special.on .dip-body {
+    border-color: #a5b4fc;
+    box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+  }
+
+  .dip-switch.disabled { opacity: 0.3; }
+
+  /* STATUS BADGE */
+  .dip-status {
+    font-size: 9px;
+    font-family: 'Roboto Mono', monospace;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 3px;
+    width: 100%;
+    max-width: 36px;
+    text-align: center;
+    border-radius: 2px;
+  }
+  .dip-switch.on .dip-status                     { background: var(--green); color: #fff; }
+  .dip-switch.config.on .dip-status               { background: #f97316; color: #fff; }
+  .dip-switch.special.on .dip-status              { background: #6366f1; color: #fff; }
+  .dip-switch:not(.on):not(.disabled) .dip-status { background: #e2e5e9; color: #999; }
+  .dip-switch.disabled .dip-status                { background: transparent; color: #ccc; }
+
+  /* VALUE LABEL */
+  .dip-val-label {
+    font-size: 9px;
+    font-family: 'Roboto Mono', monospace;
+    color: var(--text-dim);
+    line-height: 1;
+    text-align: center;
+  }
+  .dip-switch.on .dip-val-label        { color: #16a34a; font-weight: 700; }
+  .dip-switch.config.on .dip-val-label { color: #c2410c; font-weight: 700; }
+
+
+  /* ALG DIP TABLE */
+  .alg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+  }
+  .alg-table thead th {
+    background: #f7f8fa;
+    border-bottom: 2px solid var(--border);
+    padding: 7px 14px;
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .alg-row td {
+    padding: 5px 14px;
+    border-bottom: 1px solid #f0f2f5;
+    vertical-align: middle;
+  }
+  .alg-row:hover td { background: #f7f8fa; }
+  .alg-addr {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--text);
+    width: 60px;
+  }
+  .alg-bin {
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    width: 90px;
+  }
+  .alg-dips {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+  .alg-dip {
+    width: 14px;
+    height: 22px;
+    background: #e2e5e9;
+    border: 1px solid #bcc2cb;
+    border-radius: 2px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .alg-dip::after {
+    content: '';
+    position: absolute;
+    left: 2px; right: 2px;
+    height: 8px;
+    background: #b0b7bf;
+    border-radius: 1px;
+    bottom: 3px;
+    transition: top 0.1s, background 0.1s;
+  }
+  .alg-dip.on {
+    background: #f0fdf4;
+    border-color: #86efac;
+  }
+  .alg-dip.on::after {
+    background: #22c55e;
+    bottom: auto;
+    top: 3px;
+  }
+
+  /* SEPARATOR */
+  .dip-separator {
+    width: 1px;
+    background: var(--border);
+    margin: 0 1px;
+    align-self: stretch;
+    margin-top: 14px;
+  }
+
+  /* LEGEND */
+  .legend {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .legend-pip {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-bosch">BOSCH</div>
+  <div class="logo-title">DIP Switch Konfigurator</div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="section-label">Tools</div>
+    <div class="device-item" onclick="selectDevice('alg_dip')" id="nav-alg_dip">
+      <div class="dev-name">ALG DIP</div>
+      <div class="dev-info">Adresstabelle 0–127</div>
+    </div>
+    <div class="section-label" style="margin-top:10px">Geräte</div>
+    <div class="device-item active" onclick="selectDevice('danfoss_novocon')" id="nav-danfoss_novocon">
+      <div class="dev-name">Danfoss Novocon S</div>
+      <div class="dev-info">10 DIP · Modbus/BACnet</div>
+    </div>
+    <div class="device-item" onclick="selectDevice('thermokon_novos3')" id="nav-thermokon_novos3">
+      <div class="dev-name">Thermokon Novos 3</div>
+      <div class="dev-info">10 DIP · Modbus RTU</div>
+    </div>
+    <div class="device-item" onclick="selectDevice('eap_bsk')" id="nav-eap_bsk">
+      <div class="dev-name">EAP-BSK Modul</div>
+      <div class="dev-info">10 DIP · Modbus RTU</div>
+    </div>
+  </aside>
+
+  <main id="main-content"></main>
+</div>
+
+<script>
+const devices = {
+  danfoss_novocon: {
+    name: 'Danfoss Novocon S',
+    description: '10-poliger DIP · Modbus RTU / BACnet MS/TP',
+    type: 'simple',
+    dips: [
+      { num: 1,  label: '1',    type: 'address', value: 1 },
+      { num: 2,  label: '2',    type: 'address', value: 2 },
+      { num: 3,  label: '4',    type: 'address', value: 4 },
+      { num: 4,  label: '8',    type: 'address', value: 8 },
+      { num: 5,  label: '16',   type: 'address', value: 16 },
+      { num: 6,  label: '32',   type: 'address', value: 32 },
+      { num: 7,  label: '64',   type: 'address', value: 64 },
+      { num: 8,  label: 'TERM', type: 'special', value: null },
+      { num: 9,  label: '—',    type: 'disabled', value: null },
+      { num: 10, label: 'BUS',  type: 'special', value: null, forceOn: true },
+    ],
+    separatorAfter: 6,
+    minAddr: 1, maxAddr: 127,
+    addrBits: [1,2,3,4,5,6,7],
+  },
+  thermokon_novos3: {
+    name: 'Thermokon Novos 3',
+    description: '10-poliger DIP · Modbus RTU',
+    type: 'advanced',
+    dips: [
+      { num: 1,  label: '1',   type: 'address', value: 1 },
+      { num: 2,  label: '2',   type: 'address', value: 2 },
+      { num: 3,  label: '4',   type: 'address', value: 4 },
+      { num: 4,  label: '8',   type: 'address', value: 8 },
+      { num: 5,  label: '16',  type: 'address', value: 16 },
+      { num: 6,  label: '32',  type: 'address', value: 32 },
+      { num: 7,  label: 'BD',  type: 'config' },
+      { num: 8,  label: 'BD',  type: 'config' },
+      { num: 9,  label: 'PAR', type: 'config' },
+      { num: 10, label: 'PAR', type: 'config' },
+    ],
+    minAddr: 1, maxAddr: 63,
+    addrBits: [1,2,3,4,5,6],
+    baudrateOptions: [
+      { label: '9600',               dip7: false, dip8: false },
+      { label: '19200',              dip7: true,  dip8: false },
+      { label: '38400',              dip7: false, dip8: true  },
+      { label: '57600 (Standard)',   dip7: true,  dip8: true, default: true },
+    ],
+    parityOptions: [
+      { label: 'Keine – 2 Stopbits',            dip9: false, dip10: false },
+      { label: 'Gerade (Even) – 1 Stopbit',     dip9: true,  dip10: false },
+      { label: 'Ungerade (Odd) – 1 Stopbit',    dip9: false, dip10: true  },
+      { label: 'Keine – 1 Stopbit (Standard)',   dip9: true,  dip10: true, default: true },
+    ],
+  },
+  eap_bsk: {
+    name: 'EAP-BSK Modul',
+    description: '10-poliger DIP · Modbus RTU',
+    type: 'advanced',
+    dips: [
+      { num: 1,  label: '1',   type: 'address', value: 1 },
+      { num: 2,  label: '2',   type: 'address', value: 2 },
+      { num: 3,  label: '4',   type: 'address', value: 4 },
+      { num: 4,  label: '8',   type: 'address', value: 8 },
+      { num: 5,  label: '16',  type: 'address', value: 16 },
+      { num: 6,  label: '32',  type: 'address', value: 32 },
+      { num: 7,  label: 'PAR', type: 'config' },
+      { num: 8,  label: 'PAR', type: 'config' },
+      { num: 9,  label: 'BD',  type: 'config' },
+      { num: 10, label: 'BD',  type: 'config' },
+    ],
+    minAddr: 1, maxAddr: 63,
+    addrBits: [1,2,3,4,5,6],
+    // DIP7+8: Parität — 00=keine, 10=ungerade(odd), 11=gerade(even)
+    parityOptions: [
+      { label: 'Keine Parität  (8-N-2)',   dip7: false, dip8: false, default: true },
+      { label: 'Ungerade (8-O-1)',         dip7: true,  dip8: false },
+      { label: 'Gerade (8-E-1)',           dip7: true,  dip8: true  },
+    ],
+    // DIP9+10: Baudrate — 00=4800, 10=9600, 01=19200, 11=38400
+    baudrateOptions: [
+      { label: '4800',   dip9: false, dip10: false },
+      { label: '9600',   dip9: true,  dip10: false },
+      { label: '19200',  dip9: false, dip10: true  },
+      { label: '38400',  dip9: true,  dip10: true  },
+    ],
+  }
+
+};
+
+let currentDevice = 'danfoss_novocon';
+let currentAddress = 1;
+let thermokonState = { baudrateIdx: 3, parityIdx: 3 };
+let eapState = { baudrateIdx: 0, parityIdx: 0 };
+
+function selectDevice(id) {
+  currentDevice = id;
+  document.querySelectorAll('.device-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-' + id).classList.add('active');
+  currentAddress = devices[id].minAddr;
+  render();
+}
+
+function dipSwitch(dip, isOn, typeClass) {
+  const statusText = dip.type === 'disabled' ? '–' : (isOn ? 'ON' : 'OFF');
+  const cls = [typeClass, isOn ? 'on' : ''].filter(Boolean).join(' ');
+  return `<div class="dip-switch ${cls}" id="dip-${dip.num}">
+    <div class="dip-num-label">${dip.num}</div>
+    <div class="dip-body"><div class="dip-slider"></div></div>
+    <div class="dip-status">${statusText}</div>
+    <div class="dip-val-label">${dip.label}</div>
+  </div>`;
+}
+
+/* ── DANFOSS ─────────────────────────────── */
+function renderDanfoss() {
+  const dev = devices.danfoss_novocon;
+  const addr = currentAddress;
+  const active = {};
+  dev.addrBits.forEach(n => { active[n] = (addr & dev.dips[n-1].value) !== 0; });
+
+  let row = '';
+  dev.dips.forEach((dip, i) => {
+    let isOn = false, cls = '';
+    if      (dip.type === 'address')  { isOn = active[dip.num]; }
+    else if (dip.type === 'special')  { isOn = !!dip.forceOn; cls = 'special'; }
+    else                               { cls = 'disabled'; }
+    row += dipSwitch(dip, isOn, cls);
+    if (i === 6) row += `<div class="dip-separator"></div>`;
+  });
+
+  return `
+    <div class="device-header">
+      <h1>${dev.name}</h1>
+      <p>${dev.description}</p>
+    </div>
+    <div class="input-section">
+      <div class="input-group">
+        <label>Slave-Adresse</label>
+        <input class="addr-input" type="text" inputmode="numeric" pattern="[0-9]*"
+          autocomplete="off" value="${addr}" oninput="onAddressChange(this)" id="addr-field" />
+      </div>
+      <div class="addr-range">Bereich 1 – ${dev.maxAddr}</div>
+      <div class="protocol-badge">MODBUS RTU</div>
+    </div>
+    <div class="dip-section">
+      <div class="dip-section-header">
+        <h2>DIP-Schalter Konfiguration</h2>
+        <div class="dip-addr-label" id="dip-addr-label">ADRESSE ${addr}</div>
+      </div>
+      <div class="dip-section-body">
+        <div class="dip-row">${row}</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-pip" style="background:#22c55e"></div>Adressbit ON</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#6366f1"></div>Funktion</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#c0c5cc;border:1px solid #bcc2cb"></div>OFF</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── THERMOKON ───────────────────────────── */
+function renderThermokon() {
+  const dev = devices.thermokon_novos3;
+  const addr = currentAddress;
+  const baud = dev.baudrateOptions[thermokonState.baudrateIdx];
+  const par  = dev.parityOptions[thermokonState.parityIdx];
+
+  // Calc pixel widths for group labels to align over DIP switches
+  // Each DIP = flex:1 in a row, gap=5px. We use a flex-based span trick.
+  // Instead: build labels as flex spans with fixed flex values matching DIP count.
+
+  // Build single DIP row
+  let row = '';
+  dev.dips.forEach((dip, i) => {
+    let isOn = false, cls = '';
+    if (dip.type === 'address') {
+      isOn = (addr & dip.value) !== 0;
+    } else if (dip.type === 'config') {
+      cls = 'config';
+      if (i === 6) isOn = baud.dip7;
+      if (i === 7) isOn = baud.dip8;
+      if (i === 8) isOn = par.dip9;
+      if (i === 9) isOn = par.dip10;
+    }
+    row += dipSwitch(dip, isOn, cls);
+    // Thin separators between groups
+    if (i === 5) row += `<div class="dip-separator"></div>`;
+    if (i === 7) row += `<div class="dip-separator"></div>`;
+  });
+
+  // Group label spans — flex values match DIP counts (6, sep, 2, sep, 2)
+  // We replicate the row structure with invisible placeholder widths
+  const labelRow = `
+      <div class="dip-group-labels">
+      <div class="dip-label-span" style="flex:6;min-width:0">
+        <div class="dip-label-span-text green">Adresse<br>1–6</div>
+        <div class="dip-label-span-bar green"></div>
+      </div>
+      <div style="width:7px;flex-shrink:0"></div>
+      <div class="dip-label-span" style="flex:2;min-width:0">
+        <div class="dip-label-span-text orange">Baud<br>7–8</div>
+        <div class="dip-label-span-bar orange"></div>
+      </div>
+      <div style="width:7px;flex-shrink:0"></div>
+      <div class="dip-label-span" style="flex:2;min-width:0">
+        <div class="dip-label-span-text orange">Parität<br>9–10</div>
+        <div class="dip-label-span-bar orange"></div>
+      </div>
+    </div>`;
+
+  const baudOptions = dev.baudrateOptions.map((o, i) =>
+    `<option value="${i}" ${i === thermokonState.baudrateIdx ? 'selected' : ''}>${o.label}</option>`).join('');
+  const parOptions = dev.parityOptions.map((o, i) =>
+    `<option value="${i}" ${i === thermokonState.parityIdx ? 'selected' : ''}>${o.label}</option>`).join('');
+
+  return `
+    <div class="device-header">
+      <h1>${dev.name}</h1>
+      <p>${dev.description}</p>
+    </div>
+    <div class="input-section">
+      <div class="input-group">
+        <label>Slave-Adresse</label>
+        <input class="addr-input" type="text" inputmode="numeric" pattern="[0-9]*"
+          autocomplete="off" value="${addr}" oninput="onAddressChange(this)" id="addr-field" />
+      </div>
+      <div class="addr-range">Bereich 1 – ${dev.maxAddr}</div>
+      <div class="input-group">
+        <label>Baudrate</label>
+        <select class="select-control" onchange="onBaudrateChange(this.value)">${baudOptions}</select>
+      </div>
+      <div class="input-group">
+        <label>Parität / Stopbits</label>
+        <select class="select-control" onchange="onParityChange(this.value)">${parOptions}</select>
+      </div>
+      <div class="protocol-badge" style="margin-left:auto">MODBUS RTU</div>
+    </div>
+    <div class="dip-section">
+      <div class="dip-section-header">
+        <h2>DIP-Schalter Konfiguration</h2>
+        <div class="dip-addr-label" id="dip-addr-label">ADRESSE ${addr}</div>
+      </div>
+      <div class="dip-section-body">
+        ${labelRow}
+        <div class="dip-row">${row}</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-pip" style="background:#22c55e"></div>Adressbit ON</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#f97316"></div>Baudrate / Parität ON</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#c0c5cc;border:1px solid #bcc2cb"></div>OFF</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+
+/* ── EAP-BSK ─────────────────────────────── */
+function renderEap() {
+  const dev = devices.eap_bsk;
+  const addr = currentAddress;
+  const par  = dev.parityOptions[eapState.parityIdx];
+  const baud = dev.baudrateOptions[eapState.baudrateIdx];
+
+  let row = '';
+  dev.dips.forEach((dip, i) => {
+    let isOn = false, cls = '';
+    if (dip.type === 'address') {
+      isOn = (addr & dip.value) !== 0;
+    } else if (dip.type === 'config') {
+      cls = 'config';
+      if (i === 6) isOn = par.dip7;
+      if (i === 7) isOn = par.dip8;
+      if (i === 8) isOn = baud.dip9;
+      if (i === 9) isOn = baud.dip10;
+    }
+    row += dipSwitch(dip, isOn, cls);
+    if (i === 5) row += `<div class="dip-separator"></div>`;
+    if (i === 7) row += `<div class="dip-separator"></div>`;
+  });
+
+  const labelRow = `
+    <div class="dip-group-labels">
+      <div class="dip-label-span" style="flex:6;min-width:0">
+        <div class="dip-label-span-text green">Adresse<br>1–6</div>
+        <div class="dip-label-span-bar green"></div>
+      </div>
+      <div style="width:7px;flex-shrink:0"></div>
+      <div class="dip-label-span" style="flex:2;min-width:0">
+        <div class="dip-label-span-text orange">Parität<br>7–8</div>
+        <div class="dip-label-span-bar orange"></div>
+      </div>
+      <div style="width:7px;flex-shrink:0"></div>
+      <div class="dip-label-span" style="flex:2;min-width:0">
+        <div class="dip-label-span-text orange">Baud<br>9–10</div>
+        <div class="dip-label-span-bar orange"></div>
+      </div>
+    </div>`;
+
+  const parOptions = dev.parityOptions.map((o, i) =>
+    `<option value="${i}" ${i === eapState.parityIdx ? 'selected' : ''}>${o.label}</option>`).join('');
+  const baudOptions = dev.baudrateOptions.map((o, i) =>
+    `<option value="${i}" ${i === eapState.baudrateIdx ? 'selected' : ''}>${o.label}</option>`).join('');
+
+  return `
+    <div class="device-header">
+      <h1>${dev.name}</h1>
+      <p>${dev.description}</p>
+    </div>
+    <div class="input-section">
+      <div class="input-group">
+        <label>Slave-Adresse</label>
+        <input class="addr-input" type="text" inputmode="numeric" pattern="[0-9]*"
+          autocomplete="off" value="${addr}" oninput="onAddressChange(this)" id="addr-field" />
+      </div>
+      <div class="addr-range">Bereich 1 – ${dev.maxAddr}</div>
+      <div class="input-group">
+        <label>Parität</label>
+        <select class="select-control" onchange="onEapParityChange(this.value)">${parOptions}</select>
+      </div>
+      <div class="input-group">
+        <label>Baudrate</label>
+        <select class="select-control" onchange="onEapBaudrateChange(this.value)">${baudOptions}</select>
+      </div>
+      <div class="protocol-badge" style="margin-left:auto">MODBUS RTU</div>
+    </div>
+    <div class="dip-section">
+      <div class="dip-section-header">
+        <h2>DIP-Schalter Konfiguration</h2>
+        <div class="dip-addr-label" id="dip-addr-label">ADRESSE ${addr}</div>
+      </div>
+      <div class="dip-section-body">
+        ${labelRow}
+        <div class="dip-row">${row}</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-pip" style="background:#22c55e"></div>Adressbit ON</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#f97316"></div>Parität / Baudrate ON</div>
+          <div class="legend-item"><div class="legend-pip" style="background:#c0c5cc;border:1px solid #bcc2cb"></div>OFF</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+
+/* ── ALG DIP TABLE ──────────────────────────── */
+function renderAlgDip() {
+  // Build mini DIP indicator: 7 bits, each a small square
+  function miniDips(addr) {
+    let html = '<div class="alg-dips">';
+    for (let b = 0; b < 7; b++) {
+      const on = (addr >> b) & 1;
+      html += `<div class="alg-dip${on ? ' on' : ''}"></div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  let rows = '';
+  for (let a = 0; a <= 127; a++) {
+    // bit labels for hover/title
+    let bits = '';
+    for (let b = 0; b < 7; b++) bits += (a >> b) & 1;
+    rows += `<tr class="alg-row">
+      <td class="alg-addr">${a}</td>
+      <td class="alg-bin">${a.toString(2).padStart(7,'0')}</td>
+      <td>${miniDips(a)}</td>
+    </tr>`;
+  }
+
+  return `
+    <div class="device-header">
+      <h1>ALG DIP – Adresstabelle</h1>
+      <p>Alle Adressen 0–127 mit DIP-Schalterstellung (7 Bit binär)</p>
+    </div>
+    <div class="dip-section" style="overflow:hidden">
+      <div class="dip-section-header">
+        <h2>Adresse → DIP-Stellung</h2>
+        <div style="font-size:10px;color:#999;font-family:'Roboto Mono',monospace">DIP 1 links · DIP 7 rechts</div>
+      </div>
+      <div style="overflow-y:auto;max-height:calc(100vh - 220px)">
+        <table class="alg-table">
+          <thead>
+            <tr>
+              <th>Adresse</th>
+              <th>Binär</th>
+              <th>DIP 1–7</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ── RENDER ─────────────────────────────── */
+function render() {
+  document.getElementById('main-content').innerHTML =
+    currentDevice === 'alg_dip' ? renderAlgDip() : currentDevice === 'danfoss_novocon' ? renderDanfoss() : currentDevice === 'thermokon_novos3' ? renderThermokon() : renderEap();
+}
+
+/* ── LIVE UPDATE (ohne Input-Re-render) ─── */
+function setDip(num, isOn) {
+  const el = document.getElementById('dip-' + num);
+  if (!el) return;
+  el.classList.toggle('on', isOn);
+  const s = el.querySelector('.dip-status');
+  if (s) s.textContent = isOn ? 'ON' : 'OFF';
+}
+
+function updateDipsDanfoss() {
+  const dev = devices.danfoss_novocon;
+  dev.addrBits.forEach(n => setDip(n, (currentAddress & dev.dips[n-1].value) !== 0));
+  const lbl = document.getElementById('dip-addr-label');
+  if (lbl) lbl.textContent = 'ADRESSE ' + currentAddress;
+}
+
+function updateDipsThermokon() {
+  const dev = devices.thermokon_novos3;
+  const baud = dev.baudrateOptions[thermokonState.baudrateIdx];
+  const par  = dev.parityOptions[thermokonState.parityIdx];
+  dev.addrBits.forEach(n => setDip(n, (currentAddress & dev.dips[n-1].value) !== 0));
+  setDip(7, baud.dip7); setDip(8, baud.dip8);
+  setDip(9, par.dip9);  setDip(10, par.dip10);
+  const lbl = document.getElementById('dip-addr-label');
+  if (lbl) lbl.textContent = 'ADRESSE ' + currentAddress;
+}
+
+function onAddressChange(input) {
+  const dev = devices[currentDevice];
+  const raw = input.value.replace(/[^0-9]/g, '');
+  input.value = raw;
+  let n = parseInt(raw);
+  if (isNaN(n) || raw === '') return;
+  if (n < dev.minAddr) n = dev.minAddr;
+  if (n > dev.maxAddr) n = dev.maxAddr;
+  if (n === currentAddress) return;
+  currentAddress = n;
+  currentDevice === 'danfoss_novocon' ? updateDipsDanfoss() : currentDevice === 'thermokon_novos3' ? updateDipsThermokon() : updateDipsEap();
+}
+
+function onBaudrateChange(val) {
+  thermokonState.baudrateIdx = parseInt(val);
+  updateDipsThermokon();
+}
+function onParityChange(val) {
+  thermokonState.parityIdx = parseInt(val);
+  updateDipsThermokon();
+}
+
+
+function updateDipsEap() {
+  const dev = devices.eap_bsk;
+  const par  = dev.parityOptions[eapState.parityIdx];
+  const baud = dev.baudrateOptions[eapState.baudrateIdx];
+  dev.addrBits.forEach(n => setDip(n, (currentAddress & dev.dips[n-1].value) !== 0));
+  setDip(7, par.dip7);  setDip(8, par.dip8);
+  setDip(9, baud.dip9); setDip(10, baud.dip10);
+  const lbl = document.getElementById('dip-addr-label');
+  if (lbl) lbl.textContent = 'ADRESSE ' + currentAddress;
+}
+
+function onEapParityChange(val) {
+  eapState.parityIdx = parseInt(val);
+  updateDipsEap();
+}
+function onEapBaudrateChange(val) {
+  eapState.baudrateIdx = parseInt(val);
+  updateDipsEap();
+}
+
+render();
+</script>
+</body>
+</html>
